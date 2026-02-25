@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="./output.css" rel="stylesheet" />
+    <title>GeoReflected</title>
+    <link rel="icon" href="./favicon.png" sizes="any">
+    <link rel="apple-touch-icon" href="./favicon.png">
+    
+    <style>
+      /* Optional: make the browser UI feel nicer on mobile */
+      html,
+      body {
+        height: 100%;
+      }
+
+      /* Hide scrollbars (still scrollable) */
+      .no-scrollbar {
+        -ms-overflow-style: none; /* IE/Edge */
+        scrollbar-width: none; /* Firefox */
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+      }
+
+      /* Mobile fade */
+      .mimg {
+        opacity: 0;
+        transition: opacity 600ms ease;
+        will-change: opacity;
+      }
+      .mimg.is-visible {
+        opacity: 1;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .mimg {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+
+  <body class="m-0 bg-[#f7f5ef]">
+    <!-- Floating logo + menu -->
+    <div class="fixed left-6 top-6 z-50">
+      <button
+        id="logoBtn"
+        type="button"
+        class="relative rounded-full"
+        aria-label="Open links"
+        aria-haspopup="menu"
+        aria-expanded="false"
+      >
+        <img
+          src="./assets/logo.png"
+          alt="GeoReflected"
+          width="100"
+          height="100"
+          class="block select-none w-14 h-14 md:w-[100px] md:h-[100px]"
+          draggable="false"
+        />
+      </button>
+
+      <!-- Menu (animates; not using hidden) -->
+      <div
+        id="logoMenu"
+        class="mt-3 w-56 overflow-hidden rounded-2xl border border-white/10 bg-black/70 backdrop-blur
+               opacity-0 translate-y-2 pointer-events-none transition duration-200 ease-out"
+        role="menu"
+        aria-label="Social links"
+      >
+        <a class="block px-4 py-3 text-sm text-white/90 hover:bg-white/10" role="menuitem" href="https://www.instagram.com/geo.reflected/" target="_blank" rel="noreferrer">Instagram</a>
+        <a class="block px-4 py-3 text-sm text-white/90 hover:bg-white/10" role="menuitem" href="https://www.facebook.com/profile.php?id=61582954252689" target="_blank" rel="noreferrer">Flickr</a>
+        <a class="block px-4 py-3 text-sm text-white/90 hover:bg-white/10" role="menuitem" href="https://www.linkedin.com/in/geo-france-529a0b36b/" target="_blank" rel="noreferrer">Threads</a>
+        <a class="block px-4 py-3 text-sm text-white/90 hover:bg-white/10" role="menuitem" href="tel:+447917401989"> 07917401989 </a>
+      </div>
+    </div>
+
+    <!-- Bottom-left text logo (animates; not using hidden) -->
+    <div
+      id="textLogo"
+      class="fixed left-6 bottom-6 z-50 opacity-0 translate-y-2 pointer-events-none transition duration-200 ease-out"
+      aria-hidden="true"
+    >
+      <img
+        src="./assets/text-logo.png"
+        alt="GeoReflected"
+        width="220"
+        height="60"
+        class="block select-none w-[140px] md:w-[220px]"
+        draggable="false"
+      />
+    </div>
+
+    <!-- Gallery scroller (mobile = page feed, desktop = snap scroller) -->
+    <main
+      id="gallery"
+      class="no-scrollbar relative z-10 w-full h-auto md:h-screen md:overflow-y-scroll md:snap-y md:snap-proximity md:scroll-pt-24 md:snap-stop-always"
+    ></main>
+
+    <script>
+      // ====== CONFIG ======
+      const COUNT = 36;
+      const EXT = "webp";
+      const SHUFFLE = true;
+
+      // Mobile behaviour
+      const MOBILE_FADE_COUNT = 6; // fade only the first N images (intro)
+      const PRELOAD_MARGIN = "2500px";
+      // ====================
+
+      const gallery = document.getElementById("gallery");
+      const IS_MOBILE = window.matchMedia("(max-width: 767px)").matches;
+
+      // Build list of filenames
+      const files = Array.from({ length: COUNT }, (_, idx) => {
+        const n = idx + 1;
+        return `${String(n).padStart(2, "0")}.${EXT}`;
+      });
+
+      // Shuffle (Fisher–Yates)
+      if (SHUFFLE) {
+        for (let i = files.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [files[i], files[j]] = [files[j], files[i]];
+        }
+      }
+
+      if (!IS_MOBILE) {
+        // =========================
+        // DESKTOP: build + loop + no scrollbar
+        // =========================
+
+        const io = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              const img = entry.target;
+
+              const reveal = () => {
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => img.classList.remove("is-loading"));
+                });
+              };
+
+              if (img.complete) reveal();
+              else img.addEventListener("load", reveal, { once: true });
+
+              io.unobserve(img);
+            }
+          },
+          { root: gallery, threshold: 0.25 }
+        );
+
+        // Build original set
+        const frag = document.createDocumentFragment();
+
+        for (let k = 0; k < files.length; k++) {
+          const src = `./assets/img/${files[k]}`;
+
+          const slide = document.createElement("section");
+          slide.className = "relative w-full h-screen snap-start overflow-hidden bg-black";
+
+          const bg = document.createElement("img");
+          bg.src = src;
+          bg.alt = "";
+          bg.decoding = "async";
+          bg.loading = k <= 2 ? "eager" : "lazy";
+          bg.className =
+            "absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-50";
+
+          // Blend blurred side-bars at top/bottom seam during scroll
+          bg.style.webkitMaskImage =
+            "linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%)";
+          bg.style.maskImage =
+            "linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%)";
+
+          const fg = document.createElement("img");
+          fg.src = src;
+          fg.alt = "";
+          fg.decoding = "async";
+          fg.loading = k <= 2 ? "eager" : "lazy";
+          fg.className = "relative z-10 w-full h-full object-contain imgfx is-loading";
+
+          slide.appendChild(bg);
+          slide.appendChild(fg);
+          frag.appendChild(slide);
+        }
+
+        gallery.appendChild(frag);
+
+        // Loop: clone to 3 sets (original + 2 clones)
+        const originalSlides = Array.from(gallery.children);
+        const setCount = originalSlides.length;
+
+        for (let pass = 0; pass < 2; pass++) {
+          for (const node of originalSlides) {
+            gallery.appendChild(node.cloneNode(true));
+          }
+        }
+
+        // Observe all foreground imgs (including clones)
+        gallery.querySelectorAll("img.is-loading").forEach((img) => io.observe(img));
+
+        // Start at middle set + maintain infinite feel
+        requestAnimationFrame(() => {
+          const slideH = gallery.clientHeight; // each slide is h-screen
+          const setH = slideH * setCount;
+
+          // Start at the top of middle set
+          gallery.scrollTop = setH;
+
+          gallery.addEventListener(
+            "scroll",
+            () => {
+              const y = gallery.scrollTop;
+
+              // keep user inside the middle band
+              if (y < setH * 0.5) {
+                gallery.scrollTop = y + setH;
+              } else if (y > setH * 2.5) {
+                gallery.scrollTop = y - setH;
+              }
+            },
+            { passive: true }
+          );
+
+          // Desktop-only: gentle wheel assist (works fine with looping)
+          let wheelTimer = null;
+
+          function snapToNearestIfClose() {
+            const h = gallery.clientHeight;
+            const pos = gallery.scrollTop;
+            const nearest = Math.round(pos / h) * h;
+            const dist = Math.abs(pos - nearest);
+
+            const THRESHOLD = h * 0.18;
+            if (dist <= THRESHOLD) {
+              gallery.scrollTo({ top: nearest, behavior: "smooth" });
+            }
+          }
+
+          gallery.addEventListener(
+            "wheel",
+            () => {
+              clearTimeout(wheelTimer);
+              wheelTimer = setTimeout(snapToNearestIfClose, 140);
+            },
+            { passive: true }
+          );
+        });
+      } else {
+        // =========================
+        // MOBILE: initial fade for first N, everything else loads/decodes offscreen
+        // =========================
+
+        const preloadIO = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+
+              const img = entry.target;
+
+              // Set src first (while still opacity: 0)
+              if (!img.src) img.src = img.dataset.src;
+
+              // Add visible class immediately so the transition is ready
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  img.classList.add("is-visible");
+                });
+              });
+
+              preloadIO.unobserve(img);
+            }
+          },
+          { root: null, rootMargin: `${PRELOAD_MARGIN} 0px`, threshold: 0.01 }
+        );
+
+        // Build mobile feed
+        for (let k = 0; k < files.length; k++) {
+          const src = `./assets/img/${files[k]}`;
+
+          const img = document.createElement("img");
+          img.dataset.idx = String(k);
+          img.alt = "";
+          img.decoding = "async";
+          img.className = "block w-full h-auto bg-black/5 mimg";
+
+          if (k < MOBILE_FADE_COUNT) {
+            // Give first N a real src immediately so they have height and can fade
+            img.src = src;
+            img.loading = "eager";
+
+            const show = () => {
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => img.classList.add("is-visible"));
+              });
+            };
+            if (img.complete) show();
+            else img.addEventListener("load", show, { once: true });
+          } else {
+            // Others: preload offscreen and become visible before they reach viewport
+            img.dataset.src = src;
+            img.loading = "lazy";
+            preloadIO.observe(img);
+          }
+
+          gallery.appendChild(img);
+        }
+      }
+    </script>
+
+    <script>
+      // Menu + text-logo fade toggle
+      const logoBtn = document.getElementById("logoBtn");
+      const logoMenu = document.getElementById("logoMenu");
+      const textLogo = document.getElementById("textLogo");
+
+      function closeMenu() {
+        logoMenu.classList.add("opacity-0", "translate-y-2", "pointer-events-none");
+        textLogo.classList.add("opacity-0", "translate-y-2", "pointer-events-none");
+        logoBtn.setAttribute("aria-expanded", "false");
+      }
+
+      function openMenu() {
+        logoMenu.classList.remove("opacity-0", "translate-y-2", "pointer-events-none");
+        textLogo.classList.remove("opacity-0", "translate-y-2", "pointer-events-none");
+        logoBtn.setAttribute("aria-expanded", "true");
+      }
+
+      function toggleMenu() {
+        const isClosed = logoMenu.classList.contains("pointer-events-none");
+        if (isClosed) openMenu();
+        else closeMenu();
+      }
+
+      // initial state
+      closeMenu();
+
+      logoBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleMenu();
+      });
+
+      logoMenu.addEventListener("click", (e) => e.stopPropagation());
+      textLogo.addEventListener("click", (e) => e.stopPropagation());
+
+      document.addEventListener("click", closeMenu);
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeMenu();
+      });
+    </script>
+  </body>
+</html>
