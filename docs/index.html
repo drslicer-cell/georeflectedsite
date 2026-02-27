@@ -1,45 +1,80 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="./output.css" rel="stylesheet" />
-    <title>GeoReflected</title>
-    <link rel="icon" href="/favicon.png" sizes="any">
-    <link rel="apple-touch-icon" href="/favicon.png" type="image/png">
-    
-    <style>
-      /* Optional: make the browser UI feel nicer on mobile */
-      html,
-      body {
-        height: 100%;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="./output.css" rel="stylesheet" />
 
-      /* Hide scrollbars (still scrollable) */
-      .no-scrollbar {
-        -ms-overflow-style: none; /* IE/Edge */
-        scrollbar-width: none; /* Firefox */
-      }
-      .no-scrollbar::-webkit-scrollbar {
-        display: none; /* Chrome/Safari */
-      }
+  <title>Geo Reflected Phoptography</title>
 
-      /* Mobile fade */
+  <!-- Canonical -->
+  <link rel="canonical" href="https://georeflected.com/" />
+
+  <!-- Favicons -->
+  <link rel="icon" href="/favicon.png" sizes="any" />
+  <link rel="apple-touch-icon" href="/favicon.png" type="image/png" />
+
+  <!-- Link preview image (WhatsApp/Facebook/etc.) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="GeoReflected" />
+  <meta
+    property="og:description"
+    content="Event photography & nightlife in Manchester."
+  />
+  <meta property="og:url" content="https://georeflected.com/" />
+
+  <!-- Use your 1179x1179 image here -->
+  <meta property="og:image" content="https://georeflected.com/share.png" />
+  <meta
+    property="og:image:secure_url"
+    content="https://georeflected.com/share.png"
+  />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1179" />
+  <meta property="og:image:height" content="1179" />
+  <meta property="og:image:alt" content="GeoReflected – event photography" />
+
+  <!-- Twitter/X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="GeoReflected" />
+  <meta
+    name="twitter:description"
+    content="Event photography & nightlife in Manchester."
+  />
+  <meta name="twitter:image" content="https://georeflected.com/share.png" />
+
+  <style>
+    /* Optional: make the browser UI feel nicer on mobile */
+    html,
+    body {
+      height: 100%;
+    }
+
+    /* Hide scrollbars (still scrollable) */
+    .no-scrollbar {
+      -ms-overflow-style: none; /* IE/Edge */
+      scrollbar-width: none; /* Firefox */
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+
+    /* Mobile fade */
+    .mimg {
+      opacity: 0;
+      transition: opacity 600ms ease;
+      will-change: opacity;
+    }
+    .mimg.is-visible {
+      opacity: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
       .mimg {
-        opacity: 0;
-        transition: opacity 600ms ease;
-        will-change: opacity;
+        transition: none;
       }
-      .mimg.is-visible {
-        opacity: 1;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .mimg {
-          transition: none;
-        }
-      }
-    </style>
-  </head>
+    }
+  </style>
+</head>
 
   <body class="m-0 bg-[#f7f5ef]">
     <!-- Floating logo + menu -->
@@ -350,6 +385,50 @@
       document.addEventListener("click", closeMenu);
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") closeMenu();
+      });
+    </script>
+
+    <script>
+      // Keyboard navigation for up/down arrows
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+          e.preventDefault();
+
+          const gallery = document.getElementById("gallery");
+
+          if (IS_MOBILE) {
+            // Mobile: scroll by image height
+            const images = gallery.querySelectorAll("img");
+            if (images.length === 0) return;
+
+            // Find current image based on scroll position
+            const scrollTop = window.scrollY || window.pageYOffset;
+            let currentIdx = 0;
+
+            for (let i = 0; i < images.length; i++) {
+              const rect = images[i].getBoundingClientRect();
+              const imgScrollTop = rect.top + scrollTop;
+
+              // Find which image is closest to viewport center
+              if (Math.abs(rect.top + rect.height / 2) < window.innerHeight / 2) {
+                currentIdx = i;
+              }
+            }
+
+            const nextIdx = e.key === "ArrowDown" ? currentIdx + 1 : currentIdx - 1;
+
+            if (nextIdx >= 0 && nextIdx < images.length) {
+              images[nextIdx].scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          } else {
+            // Desktop: scroll by slide height (one full viewport)
+            const slideHeight = gallery.clientHeight;
+            const direction = e.key === "ArrowDown" ? 1 : -1;
+            const newScroll = gallery.scrollTop + slideHeight * direction;
+
+            gallery.scrollTo({ top: newScroll, behavior: "smooth" });
+          }
+        }
       });
     </script>
   </body>
