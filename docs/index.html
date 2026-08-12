@@ -132,10 +132,12 @@
     <!-- Gallery scroller (mobile = page feed, desktop = snap scroller) -->
     <main
       id="gallery"
-      class="no-scrollbar relative z-10 w-full h-auto md:h-screen md:overflow-y-scroll md:snap-y md:snap-proximity md:scroll-pt-24 md:snap-stop-always"
+      class="no-scrollbar relative z-10 w-full h-auto md:h-screen md:overflow-y-scroll md:snap-y md:snap-proximity md:snap-stop-always"
     ></main>
 
     <script>
+      if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
       // ====== CONFIG ======
       const COUNT = 37;
       const EXT = "webp";
@@ -241,9 +243,8 @@
 
         // Start at middle set + maintain infinite feel
         requestAnimationFrame(() => {
-          const slideH = gallery.clientHeight; // each slide is h-screen
+          const slideH = gallery.getBoundingClientRect().height;
           const setH = slideH * setCount;
-
           // Start at the top of middle set
           gallery.scrollTop = setH;
 
@@ -266,7 +267,7 @@
           let wheelTimer = null;
 
           function snapToNearestIfClose() {
-            const h = gallery.clientHeight;
+            const h = gallery.getBoundingClientRect().height;
             const pos = gallery.scrollTop;
             const nearest = Math.round(pos / h) * h;
             const dist = Math.abs(pos - nearest);
@@ -423,7 +424,7 @@
             }
           } else {
             // Desktop: scroll by slide height (one full viewport)
-            const slideHeight = gallery.clientHeight;
+            const slideHeight = gallery.getBoundingClientRect().height;
             const direction = e.key === "ArrowDown" ? 1 : -1;
             const newScroll = gallery.scrollTop + slideHeight * direction;
 
