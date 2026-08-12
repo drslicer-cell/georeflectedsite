@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+<link href="./output.css" rel="stylesheet" />
+
+<style>
+  .mimg {
+    opacity: 0;
+    transition: opacity 600ms ease;
+    will-change: opacity;
+  }
+  .mimg.is-visible {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mimg { transition: none; }
+  }
+</style>
